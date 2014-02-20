@@ -1,0 +1,14 @@
+name: bay_rest
+author: Diego Rocha <diego.rocha.comp@gmail.com>
+version: 0.0.1
+homepage: https://github.com/Dreckr/BayRest
+environment:
+  sdk: '>=1.0.0'
+dependencies:
+  bay:
+    path: ../Bay
+  http_server: any
+  logging: any
+  uri: any
+dev_dependencies:
+  unittest: '>=0.9.3'
