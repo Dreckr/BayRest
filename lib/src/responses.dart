@@ -6,15 +6,13 @@ import 'dart:io';
 import 'dart:mirrors';
 import 'package:http_server/http_server.dart';
 import 'package:morph/morph.dart';
-import 'bay.dart';
 import 'resources.dart';
 
 // TODO(diego): Scan for response processors
 class ResponseHandler {
-  final Bay bay;
   List<ResponseProcessor> processors = [];
   
-  ResponseHandler(this.bay) {
+  ResponseHandler() {
     processors.add(new HttpResponseProcessor());
     processors.add(new MorphJsonResponseProcessor());
   }

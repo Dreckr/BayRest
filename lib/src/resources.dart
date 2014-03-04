@@ -1,12 +1,11 @@
 library bay.resources;
 
+import 'dart:io';
 import 'dart:mirrors';
 import 'package:bay/bay.dart';
 import 'package:logging/logging.dart';
 import 'package:uri/uri.dart';
 import 'annotations.dart';
-import 'dart:async';
-import 'dart:io';
 
 final _resourcesLogger = new Logger("bay.resources");
 
@@ -27,10 +26,15 @@ class Resource {
     _mapMethods();
   }
   
-  Future<HttpRequest> handle(HttpRequest request) {
-    
+  bool accepts(HttpRequest request) {
+    return pathPattern.matches(request.uri) && findMethod(request) != null;
   }
   
+  ResourceMethod findMethod(HttpRequest request) =>
+      methods.firstWhere(
+          (method) => method.pathPattern.matches(request.uri),
+          orElse: () => null);
+    
   void _mapMethods() {
     classMirror.declarations.forEach(
       (name, declaration) {

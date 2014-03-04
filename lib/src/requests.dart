@@ -1,68 +1,23 @@
 library bay.rest.requests;
 
-import 'dart:async';
 import 'dart:io';
 import 'dart:mirrors';
 import 'package:http_server/http_server.dart';
+import 'package:dado/dado.dart';
 import 'package:inject/inject.dart';
 import 'package:morph/morph.dart';
 import 'annotations.dart';
 import 'resources.dart';
 
 // TODO(diego): Scan for parameter resolution strategies
-class RequestHandler {
-  final Bay bay;
-  final ParameterResolver parameterResolver;
-  
-  RequestHandler(Bay bay) : bay = bay,
-                            parameterResolver = 
-                              new ParameterResolver(bay);
-  
-  Future handleRequest(ResourceMethod resourceMethod, 
-                         HttpRequestBody httpRequestBody) {
-    var request = httpRequestBody.request;
-    var completer = new Completer();
-    
-    try {
-      var resourceObject = 
-          bay.injector.getInstanceOfKey(resourceMethod.owner.bindingKey);
-      
-      var resourceMirror = reflect(resourceObject);
-      var parameterResolution = 
-          parameterResolver.resolveParameters(resourceMethod, httpRequestBody);
-      
-      var response = 
-          resourceMirror.invoke(resourceMethod.name, 
-                                parameterResolution.positionalArguments,
-                                parameterResolution.namedArguments).reflectee;
-      
-      if (response is Future) {
-        response.then(
-            (value) => completer.complete(value), 
-            onError: (error, stackTrace) => 
-                completer.completeError(error, stackTrace));
-      } else {
-        completer.complete(response);
-      }
-    } catch (error, stackTrace) {
-      completer.completeError(error, stackTrace);
-    }
-    
-    return completer.future;
-  }
-  
-}
-
 class ParameterResolver {
-  final Bay bay;
   List<ParameterResolutionStrategy> resolutionStrategies = [];
   
-  ParameterResolver(this.bay, 
-                    [List<ParameterResolutionStrategy> resolutionStrategies = 
-                    const []]) {
+  ParameterResolver(Injector injector) {
+    // Replace this with binding scan
     this.resolutionStrategies.addAll([
                                       new HttpResolutionStrategy(),
-                                      new InjectorResolutionStrategy(),
+                                      new InjectorResolutionStrategy(injector),
                                       new PathParamResolutionStrategy(),
                                       new QueryParamResolutionStrategy(),
                                       new HeaderParamResolutionStrategy(),
@@ -70,9 +25,6 @@ class ParameterResolver {
                                       new CookieParamResolutionStrategy(),
                                       new ContentBodyResolutionStrategy()
                                       ]);
-    this.resolutionStrategies.addAll(resolutionStrategies);
-    
-    this.resolutionStrategies.forEach((strategy) => strategy.install(bay));
   }
   
   ParameterResolution resolveParameters(ResourceMethod resourceMethod, 
@@ -127,7 +79,6 @@ class ParameterResolution {
 }
 
 abstract class ParameterResolutionStrategy {
-  Bay bay;
   
   bool appliesTo(ResourceMethod resourceMethod,
                  ParameterMirror parameterMirror, 
@@ -136,14 +87,12 @@ abstract class ParameterResolutionStrategy {
   Object resolveParameter(ResourceMethod resourceMethod,
                           ParameterMirror parameterMirror, 
                           HttpRequestBody httpRequestBody);
-  
-  void install(Bay bay) {
-    this.bay = bay;
-  }
-  
 }
 
 class InjectorResolutionStrategy extends ParameterResolutionStrategy {
+  Injector injector;
+  
+  InjectorResolutionStrategy(Injector this.injector);
   
   bool appliesTo(ResourceMethod resourceMethod,
                  ParameterMirror parameterMirror, 
@@ -165,7 +114,7 @@ class InjectorResolutionStrategy extends ParameterResolutionStrategy {
       return null;
     
     var instance = 
-        bay.injector.getInstanceOf(typeOfTypeMirror(parameterMirror.type));
+        injector.getInstanceOf(typeOfTypeMirror(parameterMirror.type));
     
     return instance;
   }
@@ -224,6 +173,8 @@ abstract class AnnotatedParamResolutionStrategy extends ParameterResolutionStrat
       default:
         throw new ArgumentError("Cannot parse String as $type");
     }
+    
+    return null;
   }
   
   String _extractParam(ResourceMethod resourceMethod,
