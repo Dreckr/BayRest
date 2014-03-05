@@ -23,18 +23,6 @@ class Method {
   const Method(this.method);
 }
 
-class Consumes {
-  final List<String> mediaTypes;
-  
-  const Consumes(this.mediaTypes);
-}
-
-class Produces {
-  final List<String> mediaTypes;
-  
-  const Produces (this.mediaTypes);
-}
-
 class PathParam {
   final String param;
   
